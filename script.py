@@ -18,11 +18,11 @@ from tensorflow.python.framework import ops
 #%% load dataset function
 def load_datasets():
     # load datasets as a csv
-    X_train_csv = pd.read_csv(r"C:\Users\khusmodi\Documents\Kaggle\digit_recognizer\train.csv")
+    X_train_csv = pd.read_csv(r"C:\Users\khusmodi\Downloads\Kaggle_MNIST\train.csv")
     Y_train = (X_train_csv[['label']]).values
     X_train = (X_train_csv.loc[:, X_train_csv.columns != 'label']).values
     X_train = X_train/255
-    X_test_csv  = pd.read_csv(r"C:\Users\khusmodi\Documents\Kaggle\digit_recognizer\test.csv")
+    X_test_csv  = pd.read_csv(r"C:\Users\khusmodi\Downloads\Kaggle_MNIST\test.csv")
     X_test = X_test_csv.values
     X_test = X_test/255
     print (Y_train.shape)
@@ -83,9 +83,9 @@ def initialize_parameters():
     """
             
     ### START CODE HERE ### (approx. 2 lines of code)
-    W1 = tf.get_variable("W1", [4,4,1,8], initializer= tf.contrib.layers.xavier_initializer())
-    W2 = tf.get_variable("W2", [2,2,8,16], initializer= tf.contrib.layers.xavier_initializer())
-    W3 = tf.get_variable("W3", [4,4,16,64], initializer= tf.contrib.layers.xavier_initializer())
+    W1 = tf.get_variable("W1", [5,5,1,24], initializer= tf.contrib.layers.xavier_initializer())
+    W2 = tf.get_variable("W2", [5,5,24,48], initializer= tf.contrib.layers.xavier_initializer())
+    W3 = tf.get_variable("W3", [5,5,48,64], initializer= tf.contrib.layers.xavier_initializer())
     ### END CODE HERE ###
 
     parameters = {"W1": W1,
@@ -121,27 +121,28 @@ def forward_propagation(X, parameters):
     # RELU
     A1 = tf.nn.relu(Z1)
     # MAXPOOL: window 8x8, sride 8, padding 'SAME'
-    P1 = tf.nn.max_pool(A1, ksize=[1,8,8,1], strides=[1,8,8,1], padding='SAME')
+    P1 = tf.nn.max_pool(A1, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
     # CONV2D: filters W2, stride 1, padding 'SAME'
     Z2 = tf.nn.conv2d(P1, W2, strides=[1,1,1,1], padding='SAME')
     # RELU
     A2 = tf.nn.relu(Z2)
     # MAXPOOL: window 4x4, stride 4, padding 'SAME'
-    P2 = tf.nn.max_pool(A2, ksize=[1,4,4,1], strides=[1,4,4,1], padding='SAME')
+    P2 = tf.nn.max_pool(A2, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
     # CONV2D: filters W3, stride 1, padding 'SAME'
     Z3 = tf.nn.conv2d(P2, W3, strides=[1,1,1,1], padding='SAME')
     # RELU
     A3 = tf.nn.relu(Z3)
     # MAXPOOL: window 4x4, stride 4, padding 'SAME'
-    P3 = tf.nn.max_pool(A3, ksize=[1,4,4,1], strides=[1,4,4,1], padding='SAME')
+    P3 = tf.nn.max_pool(A3, ksize=[1,2,2,1], strides=[1,2,2,1], padding='SAME')
     # FLATTEN
     P4 = tf.contrib.layers.flatten(P3)
     # FULLY-CONNECTED without non-linear activation function (not not call softmax).
     # 6 neurons in output layer. Hint: one of the arguments should be "activation_fn=None" 
-    Z4 = tf.contrib.layers.fully_connected(P4, 10,activation_fn=None)
+    Z4 = tf.contrib.layers.fully_connected(P4, 256,activation_fn=None)
+    Z5 = tf.contrib.layers.fully_connected(Z4, 10,activation_fn=None)
     ### END CODE HERE ###
 
-    return Z4
+    return Z5
 #%%%
     
 #%%
@@ -179,9 +180,8 @@ def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
     mini_batches -- list of synchronous (mini_batch_X, mini_batch_Y)
     """
     
-    m = X.shape[0]                  # number of training examples
-    mini_batches = []
-    np.random.seed(seed)
+    m = X.shape[0] 
+    mini_batches = []     
     
     # Step 1: Shuffle (X, Y)
     permutation = list(np.random.permutation(m))
@@ -207,8 +207,8 @@ def random_mini_batches(X, Y, mini_batch_size = 64, seed = 0):
 #%%
     
 #%%
-def model(X_train, Y_train, X_test, learning_rate = 0.009,
-          num_epochs = 200, minibatch_size = 64, print_cost = True):
+def model(X_train, Y_train, X_test, learning_rate = 0.002,
+          num_epochs = 200, minibatch_size = 128, print_cost = True):
     """
     Implements a three-layer ConvNet in Tensorflow:
     CONV2D -> RELU -> MAXPOOL -> CONV2D -> RELU -> MAXPOOL -> FLATTEN -> FULLYCONNECTED
@@ -230,8 +230,7 @@ def model(X_train, Y_train, X_test, learning_rate = 0.009,
     """
     
     ops.reset_default_graph()                         # to be able to rerun the model without overwriting tf variables
-    tf.set_random_seed(1)                             # to keep results consistent (tensorflow seed)
-    seed = 3                                          # to keep results consistent (numpy seed)
+
     (m, n_H0, n_W0, n_C0) = X_train.shape             
     n_y = Y_train.shape[1]                            
     costs = []                                        # To keep track of the cost
@@ -275,8 +274,7 @@ def model(X_train, Y_train, X_test, learning_rate = 0.009,
 
             minibatch_cost = 0.
             num_minibatches = int(m / minibatch_size) # number of minibatches of size minibatch_size in the train set
-            seed = seed + 1
-            minibatches = random_mini_batches(X_train, Y_train, minibatch_size, seed)
+            minibatches = random_mini_batches(X_train, Y_train, minibatch_size)
 
             for minibatch in minibatches:
 
@@ -338,5 +336,5 @@ df = pd.DataFrame(columns=['ImageId','Label'])
 df['Label'] = p
 df['ImageId'] = np.arange(len(p))
 df['ImageId'] = df['ImageId'] + 1
-df.to_csv(r"C:\Users\khusmodi\Documents\Kaggle\digit_recognizer\output_submission.csv", index=False)
+df.to_csv(r"C:\Users\khusmodi\Downloads\Kaggle_MNIST\output_submission4.csv", index=False)
 #%%
